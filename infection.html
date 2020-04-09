@@ -1,0 +1,205 @@
+<canvas id="canvas" width="700px" height="400px" style="border: 1px solid #000;"></canvas>
+
+<script type="text/javascript">
+	
+	var canvas, ctx, W, H;
+
+	window.onload = init;
+
+	var populationCount = 4000;
+	var humansWithPossitiveCoV = 1;
+
+	let Human = function(x,y,statusCoV, vx,vy) {
+		this.x = x;
+		this.y = y;
+		this.statusCoV = statusCoV;
+		this.radius = 3;
+
+		this.vx = vx;
+		this.vy = vy;
+
+		this.isCollide = false;
+		this.mass      = 1;
+	};
+
+	var population = [];
+
+	function init() {
+		canvas = document.getElementById("canvas");
+		ctx    = canvas.getContext('2d');
+		W      = canvas.width;
+		H      = canvas.height;
+
+		initPopulation();
+		initPopulationPossitveCoV();
+		initDraw();
+	}
+
+	function initPopulationPossitveCoV() {
+		for (var i=0;i<humansWithPossitiveCoV;i++) {
+			let rndX = Math.random()*W;
+			let rndY = Math.random()*H;
+
+			var xV   = parseInt(Math.random()*2);
+			var yV   = parseInt(Math.random()*2);
+
+			xV == 0 ? xV = 1 : xV = -1;
+			yV == 0 ? yV = 1 : yV = -1;
+
+			let h = new Human(rndX, rndY, 1, xV, yV);
+
+			population.push(h);
+		}
+	}
+
+	function initPopulation() {
+		for (var i=0;i<populationCount;i++) {
+			let rndX = Math.random()*W;
+			let rndY = Math.random()*H;
+
+			var xV   = parseInt(Math.random()*2);
+			var yV   = parseInt(Math.random()*2);
+
+			xV == 0 ? xV = 1 : xV = -1;
+			yV == 0 ? yV = 1 : yV = -1;
+
+			let h = new Human(rndX, rndY, 0, xV, yV);
+
+			population.push(h);
+		}
+	}
+
+	function initDraw() {
+		ctx.clearRect(0,0,W,H);
+
+		detectCollisions();
+		
+		for (var i=0;i<population.length;i++) {
+			var h = population[i];
+
+			h.x += h.vx;
+			h.y += h.vy;
+
+			if ( h.x-h.radius <= 0 || h.x+h.radius >= W ) h.vx = -h.vx;
+			if ( h.y-h.radius <= 0 || h.y+h.radius >= H ) h.vy = -h.vy; 
+
+			ctx.beginPath();
+			ctx.arc(h.x,h.y,h.radius,0, Math.PI*2, 0);
+			ctx.closePath();
+
+			if ( h.statusCoV == 0 ) {
+				ctx.fillStyle   = 'white';
+				ctx.strokeStyle = 'black';
+				ctx.stroke();
+			}
+			else {
+				ctx.fillStyle   = 'red';
+				ctx.strokeStyle = 'red';
+				ctx.fill();
+			}
+		}
+
+		window.requestAnimationFrame(initDraw);
+	}
+
+	function detectCollisions() 
+	{
+		var h1, h2;
+
+		for ( var i=0;i<population.length;i++ ) {
+			population[i].isCollide = false;
+		}
+
+		for ( var i=0;i<population.length;i++ ) {
+			h1 = population[i];
+			
+			for ( var j=i+1;j<population.length;j++ ) {
+				h2 = population[j];
+
+				let dx = h1.x-h2.x;
+				let dy = h1.y-h2.y;
+				let distance = Math.sqrt(dx*dx+dy*dy);
+
+				if ( distance < h1.radius + h2.radius ) 
+				{
+					var coeffImp = 1.5;
+					if ( h1.statusCoV == 1 || h2.statusCoV == 1 ) 
+					{
+						h1.statusCoV = 1;
+						h2.statusCoV = 1;
+					}
+
+					h1.isCollide = true;
+					h2.isCollide = true;
+
+					let collision = {
+						x: h2.x-h1.x,
+						y: h2.y-h1.y
+					};
+
+					let collisionNormal = {
+						x: collision.x / distance,
+						y: collision.y / distance
+					};
+
+					let relV = {
+						x: h1.vx-h2.vx,
+						y: h1.vy-h2.vy
+					};
+
+					let speedV = relV.x*collisionNormal.x+relV.y*collisionNormal.y;
+
+					if ( speedV < 0 ) break;
+
+					let impulse = coeffImp*speedV / (h1.mass+h2.mass);
+
+					h1.vx -= impulse*h2.mass*collisionNormal.x;
+					h1.vy -= impulse*h2.mass*collisionNormal.y; 
+
+					h2.vx += impulse*h1.mass*collisionNormal.x;
+					h2.vy += impulse*h1.mass*collisionNormal.y;
+
+					if ( Math.abs(h1.vx) < 0.5 ) {
+						if ( h1.vx < 0 ) {
+							h1.vx = -1;
+						}
+						else {
+							h1.vx = 1;
+						}
+					}
+
+					if ( Math.abs(h1.vy) < 0.5 ) {
+						if ( h1.vy < 0 ) {
+							h1.vy = -1;
+						}
+						else {
+							h1.vy = 1;
+						}
+					}
+
+					if ( Math.abs(h2.vx) < 0.5 ) {
+						if ( h2.vx < 0 ) {
+							h2.vx = -1;
+						}
+						else {
+							h2.vx = 1;
+						}
+					}
+
+					if ( Math.abs(h2.vy) < 0.5 ) {
+						if ( h2.vy < 0 ) {
+							h2.vy = -1;
+						}
+						else {
+							h2.vy = 1;
+						}
+					}
+
+				}
+			}
+
+		} 
+
+	}
+
+</script>
